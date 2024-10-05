@@ -501,6 +501,7 @@ export class TextAreaAutoComplete {
 		let full_text = this.words[word].full_text ?? this.words[word].text;
 		if (full_text.startsWith(term))
 		{
+			this.words[word].text = full_text.replace(term, '');
 			priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
 			return priorityMatches;
 		}
