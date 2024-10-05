@@ -1,5 +1,5 @@
 import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, get_linear_schedule_with_warmup
 from tqdm import tqdm
 class PromptDataset(torch.utils.data.Dataset):
     def __init__(self, texts, tokenizer, max_len=512):
@@ -18,9 +18,9 @@ class PromptDataset(torch.utils.data.Dataset):
 
 
 class DistiledGPT2:
-    def __init__(self, device = torch.device('cuda')):
+    def __init__(self, model_path = 'distilgpt2', device = torch.device('cuda')):
         self.device = device
-        self.load()
+        self.load(model_path)
     
     def load(self, model_path = 'distilgpt2'):
         self.model = GPT2LMHeadModel.from_pretrained(model_path).to(self.device)
@@ -28,6 +28,9 @@ class DistiledGPT2:
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def unload(self):
+        del self.model
+        del self.tokenizer
+        torch.cuda.empty_cache()
         self.model = None
         self.tokenizer = None
 
@@ -37,9 +40,16 @@ class DistiledGPT2:
         dataset = PromptDataset(data, self.tokenizer)
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True)
 
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0001)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=5e-5)
+        lr_scheduler = get_linear_schedule_with_warmup(
+            optimizer=optimizer,
+            num_warmup_steps=5,
+            num_training_steps=(len(dataloader) * self.epochs),
+        )
+        
         
         for epoch in range(n_epochs):
+            total_loss = 0
             for i, (input_ids, attention_mask) in tqdm(enumerate(dataloader)):
                 input_ids = input_ids.to(self.device)
                 attention_mask = attention_mask.to(self.device)
@@ -48,11 +58,14 @@ class DistiledGPT2:
                 loss = outputs[0]
                 loss.backward()
                 optimizer.step()
-            
-            print(f"Epoch: {epoch+1}, Loss: {loss.item()}")
+                lr_scheduler.step()
+                total_loss += loss.item()
 
-        self.model.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
-        self.tokenizer.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
+            print(f"Epoch: {epoch+1}, Loss: {total_loss/len(dataloader)}")
+
+            if (epoch+1 % 5 == 0):
+                self.model.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
+                self.tokenizer.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
 
 
     def predict(self, text):
@@ -63,10 +76,12 @@ class DistiledGPT2:
                                     attention_mask = attention_mask, 
                                     max_new_tokens=20,
                                     do_sample=True,
-                                    num_beams=3,
-                                    early_stopping=True,
+                                    num_beams=20,
+                                    top_p = 0.9,
                                     eos_token_id=self.tokenizer.eos_token_id,
                                     pad_token_id=self.tokenizer.pad_token_id,
                                     temperature=0.9,
+                                    no_repeat_ngram_size=5,
+                                    num_return_sequences=15
                                     )
         return self.tokenizer.decode(output[0], skip_special_tokens=True)

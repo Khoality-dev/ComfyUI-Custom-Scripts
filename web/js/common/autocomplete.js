@@ -498,7 +498,8 @@ export class TextAreaAutoComplete {
 	#getFilteredWords(term) {
 		const priorityMatches = [];
 		let word = Object.keys(this.words)[0];
-		if (this.words[word].text.startsWith(term))
+		let full_text = this.words[word].full_text ?? this.words[word].text;
+		if (full_text.startsWith(term))
 		{
 			priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
 			return priorityMatches;
@@ -513,7 +514,8 @@ export class TextAreaAutoComplete {
 		if (xhr.status === 200) {
 			let json_object = JSON.parse(xhr.responseText);
 			let text = json_object["result"];
-			this.words[word].text = text;
+			this.words[word].full_text = text;
+			this.words[word].text = text.replace(term, '');
 			priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
 		}
 
@@ -589,7 +591,7 @@ export class TextAreaAutoComplete {
 				{
 					onclick: () => {
 						this.el.focus();
-						let value = wordInfo.value ?? wordInfo.text;
+						let value = before + (wordInfo.value ?? wordInfo.text);
 						const use_replacer = wordInfo.use_replacer ?? true;
 						if (TextAreaAutoComplete.replacer && use_replacer) {
 							value = TextAreaAutoComplete.replacer(value);

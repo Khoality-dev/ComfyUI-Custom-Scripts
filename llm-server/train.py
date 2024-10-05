@@ -12,7 +12,7 @@ def main():
 
     device = torch.device('cuda')
     model = DistiledGPT2(device)
-    model.train(data, n_epochs= 10)
+    model.train(data, n_epochs= 50)
 
 
 if __name__ == '__main__':
