@@ -3,6 +3,7 @@ import argparse
 import json
 from PIL import PngImagePlugin, Image
 from PIL.ExifTags import TAGS
+import re
 
 def get_png_metadata(image_path) -> list:
     try:
@@ -67,20 +68,22 @@ def list_files(data_dir):
 def main(args):
     data_dir = args.data_dir
     files = list_files(data_dir)
-    dataset = {'data':[]}
+    dataset = []
     for file in files:
         prompts = get_png_metadata(file)
+        if prompts is None:
+            prompts = get_jpeg_metadata(file)
+
         if prompts is not None:
-            dataset['data'].append({'image': file,'prompt': prompts})
-            continue
-            
-        prompts = get_jpeg_metadata(file)
-        if prompts is not None:
-            dataset['data'].append({'image': file,'prompt': prompts})
-            continue
+            prompts = [re.sub(r'<[^>]+>', '', prompt) for prompt in prompts]
+            prompts = [re.sub(r',\s*,', ',', cleaned_string) for cleaned_string in prompts]
+            prompts = [re.sub(r'^\s*,|,\s*$', '', cleaned_string) for cleaned_string in prompts]
+            dataset += prompts
+    
+    dataset = list(set(dataset))
 
     with open('prompts.json', 'w') as f:
-        json.dump(dataset, f, indent=4)
+        json.dump({'data': dataset}, f, indent=4)
     
 
 if __name__ == '__main__':
