@@ -495,42 +495,12 @@ export class TextAreaAutoComplete {
 
 	#getFilteredWords(term) {
 		term = term.toLocaleLowerCase();
-
 		const priorityMatches = [];
-		const prefixMatches = [];
-		const includesMatches = [];
-		for (const word of Object.keys(this.words)) {
-			const lowerWord = word.toLocaleLowerCase();
-			if (lowerWord === term) {
-				// Dont include exact matches
-				continue;
-			}
+		let word = Object.keys(this.words)[0];
+		this.words[word].text = "Hello, I'm a word"
+		priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
 
-			const pos = lowerWord.indexOf(term);
-			if (pos === -1) {
-				// No match
-				continue;
-			}
-
-			const wordInfo = this.words[word];
-			if (wordInfo.priority) {
-				priorityMatches.push({ pos, wordInfo });
-			} else if (pos) {
-				includesMatches.push({ pos, wordInfo });
-			} else {
-				prefixMatches.push({ pos, wordInfo });
-			}
-		}
-
-		priorityMatches.sort(
-			(a, b) =>
-				b.wordInfo.priority - a.wordInfo.priority ||
-				a.wordInfo.text.length - b.wordInfo.text.length ||
-				a.wordInfo.text.localeCompare(b.wordInfo.text)
-		);
-
-		const top = priorityMatches.length * 0.2;
-		return priorityMatches.slice(0, top).concat(prefixMatches, priorityMatches.slice(top), includesMatches).slice(0, TextAreaAutoComplete.suggestionCount);
+		return priorityMatches;
 	}
 
 	#update() {
@@ -548,7 +518,7 @@ export class TextAreaAutoComplete {
 			this.#hide();
 			return;
 		}
-
+		
 		this.currentWords = this.#getFilteredWords(before);
 		if (!this.currentWords.length) {
 			this.#hide();
@@ -556,9 +526,10 @@ export class TextAreaAutoComplete {
 		}
 
 		this.dropdown.style.display = "";
-
+		
 		let hasSelected = false;
 		const items = this.currentWords.map(({ wordInfo, pos }, i) => {
+			
 			const parts = [
 				$el("span", {
 					textContent: wordInfo.text.substr(0, pos),
@@ -639,7 +610,6 @@ export class TextAreaAutoComplete {
 
 			return item;
 		});
-
 		this.#setSelected(hasSelected ? this.selected : this.currentWords[0].wordInfo);
 		this.dropdown.replaceChildren(...items);
 
