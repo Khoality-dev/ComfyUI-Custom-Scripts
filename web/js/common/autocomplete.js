@@ -1,5 +1,6 @@
 import { $el } from "../../../../scripts/ui.js";
 import { addStylesheet } from "./utils.js";
+import {api} from "../../../../scripts/api.js";
 
 addStylesheet(import.meta.url);
 
@@ -493,31 +494,35 @@ export class TextAreaAutoComplete {
 		this.selected.el.click();
 	}
 
+
 	#getFilteredWords(term) {
-		term = term.toLocaleLowerCase();
 		const priorityMatches = [];
 		let word = Object.keys(this.words)[0];
-		this.words[word].text = "Hello, I'm a word"
-		priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
+		if (this.words[word].text.startsWith(term))
+		{
+			priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
+			return priorityMatches;
+		}
+
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "http://localhost:5005/autocomplete", false);  // 'false' makes the request synchronous
+		xhr.setRequestHeader("Content-Type", "application/json");
+		var data = JSON.stringify({ "input": term });
+		xhr.send(data);
+		
+		if (xhr.status === 200) {
+			let json_object = JSON.parse(xhr.responseText);
+			let text = json_object["result"];
+			this.words[word].text = text;
+			priorityMatches.push({ pos: 0, wordInfo: this.words[word] });
+		}
 
 		return priorityMatches;
 	}
 
 	#update() {
 		let before = this.helper.getBeforeCursor();
-		if (before?.length) {
-			const m = before.match(/([^\s|,|;|"]+)$/);
-			if (m) {
-				before = m[0];
-			} else {
-				before = null;
-			}
-		}
 
-		if (!before) {
-			this.#hide();
-			return;
-		}
 		
 		this.currentWords = this.#getFilteredWords(before);
 		if (!this.currentWords.length) {
