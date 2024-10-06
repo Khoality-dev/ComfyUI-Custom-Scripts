@@ -1,11 +1,11 @@
 import os
-from models.gpt import DistiledGPT2
+from models.gpt import GPTModel
 import time
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
 def main():
-    model = DistiledGPT2(os.path.join(current_dir, '../distilgpt2-finetuned'), device='cuda')
+    model = GPTModel(os.path.join(current_dir, '../model-20'), device='cuda')
 
     while True:
         input_string = input("Enter text: ")
