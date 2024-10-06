@@ -12,18 +12,23 @@ def get_png_metadata(image_path) -> list:
         print(f'Error opening {image_path}')
         return None
     metadata = image.info  # Extract PNG metadata
-    if 'prompt' not in metadata:
-        return None
-    json_string = json.loads(metadata['prompt'])
-    prompts = []
-    for key, value in json_string.items():
-        try:
-            prompt = value['inputs']['text']  
-            prompts.append(prompt)
-        except:
-            pass
-    prompts = [item for item in prompts if item]
-    return prompts
+    if 'prompt' in metadata:
+        
+        json_string = json.loads(metadata['prompt'])
+        prompts = []
+        for key, value in json_string.items():
+            try:
+                prompt = value['inputs']['text']  
+                prompts.append(prompt)
+            except:
+                pass
+        prompts = [item for item in prompts if item]
+        return prompts
+    elif 'parameters' in metadata:
+        json_string = metadata['parameters']
+        prompts = json_string.split('Steps: ')[0].split('Negative prompt: ')
+        prompts = [item for item in prompts if item]
+        return prompts
 
 def get_jpeg_metadata(image_path) -> list:
     try:
@@ -60,7 +65,7 @@ def get_jpeg_metadata(image_path) -> list:
 
 
 def list_files(data_dir):
-    for root, subdirs, files in os.walk(data_dir):
+    for root, subdirs, files in os.walk(data_dir, followlinks=True):
         for file in files:
             if os.path.isfile(os.path.join(root, file)):
                 yield os.path.join(root, file)

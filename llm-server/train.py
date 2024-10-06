@@ -2,7 +2,7 @@ import json
 import os
 import argparse
 from models.n_grams import *
-from models.distiled_gpt2 import *
+from models.gpt import *
 
 def main():
     with open(os.path.join(os.path.dirname(__file__), 'prompts.json')) as f:
@@ -11,8 +11,8 @@ def main():
     data = dataset['data']
 
     device = torch.device('cuda')
-    model = DistiledGPT2(device)
-    model.train(data, n_epochs= 50)
+    model = GPTModel('gpt2', device=device)
+    model.train(data, n_epochs= 10)
 
 
 if __name__ == '__main__':

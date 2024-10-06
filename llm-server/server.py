@@ -2,7 +2,7 @@ import os
 import torch
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from models.distiled_gpt2 import DistiledGPT2
+from models.gpt import *
 # Create a Flask app instance
 app = Flask(__name__)
 CORS(app)
@@ -29,5 +29,5 @@ def autocomplete():
 
 # Run the app
 if __name__ == '__main__':
-    model = DistiledGPT2((os.path.join(script_dir, '../distilgpt2-finetuned')), device=torch.device('cuda'))
+    model = GPTModel((os.path.join(script_dir, '../distilgpt2-finetuned')), device=torch.device('cuda'))
     app.run(debug=False, port=5005)

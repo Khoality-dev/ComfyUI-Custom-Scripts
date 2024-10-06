@@ -2,22 +2,27 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, get_linear_schedule_with_warmup
 from tqdm import tqdm
 class PromptDataset(torch.utils.data.Dataset):
-    def __init__(self, texts, tokenizer, max_len=512):
+    def __init__(self, texts, tokenizer, max_len=150):
         self.data = texts
         self.tokenizer = tokenizer
         self.max_len = max_len
+        self.cached = [None] * len(self.data)
     
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, index):
+        if self.cached[index] is not None:
+            return self.cached[index][0], self.cached[index][1]
+        
         encoding = self.tokenizer(self.data[index], return_tensors='pt', padding='max_length', max_length=self.max_len, truncation=True)
         input_ids = encoding['input_ids'].squeeze(0)
         attention_mask = encoding['attention_mask'].squeeze(0)
+        self.cached[index] = (input_ids, attention_mask)
         return input_ids, attention_mask
 
 
-class DistiledGPT2:
+class GPTModel:
     def __init__(self, model_path = 'distilgpt2', device = torch.device('cuda')):
         self.device = device
         self.load(model_path)
@@ -44,13 +49,13 @@ class DistiledGPT2:
         lr_scheduler = get_linear_schedule_with_warmup(
             optimizer=optimizer,
             num_warmup_steps=5,
-            num_training_steps=(len(dataloader) * self.epochs),
+            num_training_steps=(len(dataloader) * n_epochs),
         )
         
         
         for epoch in range(n_epochs):
             total_loss = 0
-            for i, (input_ids, attention_mask) in tqdm(enumerate(dataloader)):
+            for input_ids, attention_mask in tqdm(dataloader):
                 input_ids = input_ids.to(self.device)
                 attention_mask = attention_mask.to(self.device)
                 optimizer.zero_grad()
@@ -64,8 +69,8 @@ class DistiledGPT2:
             print(f"Epoch: {epoch+1}, Loss: {total_loss/len(dataloader)}")
 
             if (epoch+1 % 5 == 0):
-                self.model.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
-                self.tokenizer.save_pretrained(f'./distilgpt2-finetuned-epoch{epoch+1}')
+                self.model.save_pretrained(f'./model-{epoch+1}')
+                self.tokenizer.save_pretrained(f'./model-{epoch+1}')
 
 
     def predict(self, text):
