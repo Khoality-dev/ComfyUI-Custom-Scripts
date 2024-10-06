@@ -68,7 +68,8 @@ class GPTModel:
 
             print(f"Epoch: {epoch+1}, Loss: {total_loss/len(dataloader)}")
 
-            if (epoch+1 % 5 == 0):
+            if ((epoch+1) % 5 == 0):
+                print("Saving model...")
                 self.model.save_pretrained(f'./model-{epoch+1}')
                 self.tokenizer.save_pretrained(f'./model-{epoch+1}')
 

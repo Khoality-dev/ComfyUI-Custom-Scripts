@@ -12,7 +12,7 @@ def main():
 
     device = torch.device('cuda')
     model = GPTModel('gpt2', device=device)
-    model.train(data, n_epochs= 10)
+    model.train(data, n_epochs= 20)
 
 
 if __name__ == '__main__':
